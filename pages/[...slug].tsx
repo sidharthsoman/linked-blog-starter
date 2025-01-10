@@ -45,6 +45,10 @@ export default function Post({ post, backlinks }: Props) {
     },
     correctAnswer: "",
   });
+  const kandaSlugs = ['Balakanda', 'Ayodhya%20kanda', 'Aranya%20kanda', 'Kishkinda%20kanda', 'Sundara%20kanda', 'Yuddha%20kanda'];
+  const chooseRandomKanda = () => {
+    return kandaSlugs[Math.floor(Math.random()*6)];
+  }
   const openModal = async () => {
     setIsModalOpen(true);
     setIsLoadingQuestion(true);
@@ -184,6 +188,12 @@ export default function Post({ post, backlinks }: Props) {
             className="px-4 py-2 m-5 text-white bg-black rounded hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Start with Page 1
+          </button>
+          <button
+            onClick={() => router.push(`/${chooseRandomKanda()}`)}
+            className="px-4 py-2 m-5 text-white bg-black rounded hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Explore Random Kanda
           </button>
           </div>
 
