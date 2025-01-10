@@ -7,7 +7,6 @@ import path from 'path'
 import PostSingle from '../components/blog/post-single'
 import Layout from '../components/misc/layout'
 import { NextSeo } from 'next-seo'
-import { ChatOpenAI } from "@langchain/openai";
 import Modal from '../components/misc/modal'
 import { useState } from 'react'
 
@@ -21,55 +20,6 @@ type Props = {
   slug: string
   backlinks: { [k: string]: Items }
 }
-
-
-const getQuestion = async (paragraph) => {
-  function parseQuizResponse(response) {
-    const lines = response.split("\n");
-    
-    const question = lines.find((line) => line.startsWith("Question:"))?.replace("Question: ", "").trim();
-    const choices = {
-      A: lines.find((line) => line.startsWith("A)"))?.replace("A) ", "").trim(),
-      B: lines.find((line) => line.startsWith("B)"))?.replace("B) ", "").trim(),
-      C: lines.find((line) => line.startsWith("C)"))?.replace("C) ", "").trim(),
-      D: lines.find((line) => line.startsWith("D)"))?.replace("D) ", "").trim(),
-    };
-    const correctAnswer = lines.find((line) => line.startsWith("Correct Answer:"))?.replace("Correct Answer: ", "").trim()?.charAt(0);
-  
-    return { question, choices, correctAnswer };
-  }
-  const prompt = `
-  You are a quiz generator. I will provide a paragraph, and you will create one question based on it along with four multiple-choice answers. Ensure that:
-  1. The question is relevant to the paragraph's content.
-  2. One answer is correct, and the other three are plausible distractors.
-  3. Indicate the correct answer explicitly.
-  
-  Here is the paragraph:
-  "${paragraph}"
-  
-  Generate:
-  1. The question.
-  2. Four answer choices labeled A, B, C, and D.
-  3. Indicate the correct answer.
-  
-  Output your response in this format:
-  Question: <Your question>
-  A) <Answer choice A>
-  B) <Answer choice B>
-  C) <Answer choice C>
-  D) <Answer choice D>
-  Correct Answer: <Correct answer label (A, B, C, or D)>
-    `;
-  const model = new ChatOpenAI({
-    apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY,
-    modelName: "gpt-4-1106-preview",
-  });
-  const response = await model.invoke(prompt);
-  const parsedResponse = parseQuizResponse(response.content);
-  return parsedResponse;
-}
-
-
 
 export default function Post({ post, backlinks }: Props) {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -98,9 +48,27 @@ export default function Post({ post, backlinks }: Props) {
   const openModal = async () => {
     setIsModalOpen(true);
     setIsLoadingQuestion(true);
-    const newQuestionData = await getQuestion(post.content);
-    setQuestionData(newQuestionData);
-    setIsLoadingQuestion(false);
+    try {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL as string, {
+        method: 'POST', // Assuming it's a POST request
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paragraph: post.content }), // Send post.content as paragraph
+      });
+    
+      if (!response.ok) {
+        throw new Error('Failed to fetch question data');
+      }
+    
+      const newQuestionData = await response.json();
+      setQuestionData(newQuestionData);
+    } catch (error) {
+      console.error('Error fetching question data:', error);
+      // Optionally handle error state or show a message to the user
+    } finally {
+      setIsLoadingQuestion(false);
+    }
   }
   const closeModal = () => {
     setIsModalOpen(false);
